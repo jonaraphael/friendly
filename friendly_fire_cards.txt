@@ -229,15 +229,15 @@ hint Feed the splitter with green. One branch stays green; the other branch hits
 occlusions 2,9 3,9 3,10 2,11 3,11
 mirror 6 5 back
 prism 10 5 back q1
-push Q1 prism 8 8 slash
-push U1 splitter 8 5
-turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+push Q1 prism 5 8 slash
+push U1 splitter 8 6
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R shielded=true
 turret greenT 7 5 cooldown=3.5 timer=3.1 color=R req=G
-turret blueT 10 8 cooldown=3.5 timer=3.2 color=R req=B
+turret blueT 10 8 cooldown=3.5 timer=3.2 color=B req=B
 generator g1 12 8 req=R
 route split colors | t1 | E | greenT,blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"U1":{"x":8,"y":5}}}
 route red gen | t1 | E | g1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"U1":{"x":8,"y":5}},"deadTurrets":["greenT","blueT"]}
-route self | t1 | NE | t1 | {}
+route self | t1 | NE | t1 | {"deadGenerators":["g1"],"deadTurrets":["greenT","blueT"],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"U1":{"x":8,"y":5}}}
 @end
 
 @level Crossing Lasers
