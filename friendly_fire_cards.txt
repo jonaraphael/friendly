@@ -1,0 +1,461 @@
+# Friendly Fire level cards. Edit this block only to add/change rooms.
+# Syntax quick ref:
+# @level Name
+# tutorial true|false
+# start x y
+# exit x y
+# hint free text
+# banner optional overlay text
+# occlusions 2,9 3,9   / glass ... / slitsV ... / slitsH ... / rails ... / tracks ... / markers ...
+# mirror x y slash|back|vertical|horizontal [id]
+# prism x y slash|back|vertical|horizontal [id]
+# push id block|mirror|prism|splitter x y [orientation] [k=v ...]
+# turret id x y cooldown=2.6 timer=1.8 color=R req=G shielded=true mobile=true axis=x min=10 max=14 speed=.9 dir=1
+# generator id x y req=R|G|B|null
+# button id x y group=0
+# doorTile x y group=0
+# route name | source | DIR | expected[,expected2] | {json state}
+# @end
+
+@level Borrowed Shot
+tutorial true
+start 1 10
+exit 9 12
+hint Step onto the bait lane, then dodge. The slash mirror returns the shot into its source.
+occlusions 2,9 3,9 3,10 2,11 3,11
+markers 9,7
+mirror 8 6 slash
+turret t1 5 3 cooldown=3.0 timer=2.0 color=R
+route self | t1 | SE | t1 | {}
+@end
+
+@level Push the Angle
+tutorial true
+start 1 10
+exit 9 12
+hint Push the movable mirror east to kill the upper turret. The added occlusion blocks the upper turret from using the return mirror, so both mirrors are required.
+occlusions 2,9 3,9 3,10 2,11 3,11 7,4
+markers 8,8
+mirror 6 5 back
+push B1 block 4 10
+push M1 mirror 7 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret t2 8 3 cooldown=3.4 timer=2.9 color=R
+route kill t2 | t1 | E | t2 | {"pushables":{"M1":{"x":8,"y":8,"o":"slash"}}}
+route kill t1 | t1 | NE | t1 | {}
+@end
+
+@level Power Before Gun
+tutorial true
+start 1 10
+exit 9 12
+hint First destroy the generator through glass. Only then can shielded turrets be killed. Preserve the source until cleanup.
+occlusions 2,9 3,9 3,10 2,11 3,11
+glass 6,8 7,8 8,8 9,8 10,8 11,8
+markers 11,8
+mirror 7 6 slash
+mirror 6 5 back
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 9 2 cooldown=3.2 timer=2.8 color=R shielded=true
+generator g1 12 8 req=null
+route generator | t1 | E | g1 | {}
+route shield | t1 | ENE | s1 | {"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Mirror Rails
+tutorial false
+start 1 10
+exit 9 12
+hint Rails stop movable mirrors but not you or lasers. The occlusion blocks the upper turret from self-solving with the fixed return mirror.
+occlusions 2,9 3,9 3,10 2,11 3,11 7,4
+rails 9,8 9,7 9,9 8,7 8,9
+mirror 6 5 back
+push M1 mirror 7 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret t2 8 3 cooldown=3.4 timer=3.0 color=R
+route kill t2 | t1 | E | t2 | {"pushables":{"M1":{"x":8,"y":8,"o":"slash"}}}
+route self | t1 | NE | t1 | {}
+@end
+
+@level First Color
+tutorial false
+start 1 10
+exit 9 12
+hint The obvious straight shot hits the green generator as raw red and fails. Push the prism north into the lane so the same shot visibly changes R→G before hitting it.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 9 horizontal
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 9 3 cooldown=3.1 timer=2.7 color=R shielded=true
+generator g1 12 8 req=G
+route green generator | t1 | E | g1 | {"pushables":{"Q1":{"x":8,"y":8,"o":"horizontal"}}}
+route shield via prism | t1 | E | s1 | {"pushables":{"Q1":{"x":9,"y":8,"o":"slash"}},"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Blue Requires Two
+tutorial false
+start 1 10
+exit 9 12
+hint Blue requires two prism bounces. After the generator drops the shield, move the prism out of the raw-red lane.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.1 timer=2.6 color=R shielded=true
+generator g1 12 5 req=B
+route blue generator | t1 | E | g1 | {}
+route shield raw | t1 | E | s1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Hold the Shutter
+tutorial false
+start 1 10
+exit 9 12
+hint Use the box to hold one button while you stand on the other. Closed doors block line of sight and lasers.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push B1 block 4 10
+push M1 mirror 8 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.2 timer=2.8 color=R shielded=true
+generator g1 8 3 req=null
+button b1 5 10 group=0
+button b2 1 8 group=1
+doorTile 8 5 group=1
+doorTile 10 8 group=0
+route generator through opened door | t1 | E | g1 | {"doorsOpen":[1]}
+route shield raw through opened door | t1 | E | s1 | {"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1"],"doorsOpen":[0]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Unfixed Splitter
+tutorial false
+start 1 10
+exit 9 12
+hint Move the splitter into the vertical beam. It emits only the two perpendicular beams, so the side turrets die together.
+occlusions 2,9 3,9 3,10 2,11 3,11
+rails 9,4 9,6 7,4 7,6
+mirror 8 8 slash
+mirror 6 5 back
+push U1 splitter 9 5
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret t2 7 5 cooldown=3.5 timer=3.0 color=R
+turret t3 12 5 cooldown=3.5 timer=3.0 color=R
+route splitter kills sides | t1 | E | t2,t3 | {"pushables":{"U1":{"x":8,"y":5}}}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Moving Crossfire
+tutorial false
+start 1 10
+exit 9 12
+hint Wait for the mobile turret to enter the row, then bait it west through the mirror into the generator.
+occlusions 2,9 3,9 3,10 2,11 3,11
+tracks 10,8 11,8 12,8 13,8 14,8
+mirror 6 5 back
+push M1 mirror 8 8 back
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret m1 12 8 cooldown=2.1 timer=1.0 color=R mobile=true axis=x min=10 max=14 speed=0.9 dir=1
+turret s1 8 2 cooldown=3.3 timer=2.9 color=R shielded=true
+generator g1 8 3 req=null
+route mobile generator | m1 | W | g1 | {"pushables":{"M1":{"x":8,"y":8,"o":"back"}}}
+route mobile shield | m1 | W | s1 | {"pushables":{"M1":{"x":8,"y":8,"o":"back"}},"deadGenerators":["g1"]}
+route source kills mobile | t1 | E | m1 | {"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Wrong First Loses
+tutorial false
+start 1 10
+exit 9 12
+hint Order matters: blue generator, raw-red shielded turret, green-gated turret, then source cleanup.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.2 timer=2.9 color=R shielded=true req=R
+turret tG 8 3 cooldown=3.4 timer=3.0 color=R req=G
+generator g1 12 5 req=B
+route blue generator | t1 | E | g1 | {}
+route red shield | t1 | E | s1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["g1"]}
+route green turret | t1 | E | tG | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["g1"],"deadTurrets":["s1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Thread the Needle
+tutorial false
+start 6 7
+exit 9 12
+hint Push the mirror into the shallow lane so the shield generator can only be hit through both slit pairs, then reuse it for the return shot.
+occlusions 2,11 3,11 6,6
+slitsV 9,5 10,3
+slitsH 4,9 6,8
+push M1 mirror 7 7 horizontal
+turret t1 2 10 cooldown=2.6 timer=1.8 color=R shielded=true
+generator g1 11 1 req=null
+route needle generator | t1 | ENE | g1 | {"pushables":{"M1":{"x":8,"y":7,"o":"slash"}}}
+route self | t1 | NE | t1 | {"pushables":{"M1":{"x":5,"y":7,"o":"back"}},"deadGenerators":["g1"]}
+@end
+
+@level Same Mirror Twice
+tutorial false
+start 1 10
+exit 9 12
+hint Use the same movable mirror twice: first as / for the upper generator, then as \ for the lower generator.
+occlusions 2,9 3,9 3,10 2,11 3,11
+rails 9,8 8,9 7,9 8,7
+mirror 6 5 back
+push M1 mirror 8 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.2 timer=2.8 color=R shielded=true
+generator g1 8 3 req=null
+generator g2 7 11 req=null
+route g1 | t1 | E | g1 | {}
+route g2 | t1 | E | g2 | {"pushables":{"M1":{"x":7,"y":8,"o":"back"}},"deadGenerators":["g1"]}
+route shield raw | t1 | E | s1 | {"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1","g2"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Chromatic Split
+tutorial false
+start 1 10
+exit 9 12
+hint Feed the splitter with green. One branch stays green; the other branch hits a prism and turns blue.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+prism 10 5 back q1
+push Q1 prism 8 8 slash
+push U1 splitter 8 5
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret greenT 7 5 cooldown=3.5 timer=3.1 color=R req=G
+turret blueT 10 8 cooldown=3.5 timer=3.2 color=R req=B
+generator g1 12 8 req=R
+route split colors | t1 | E | greenT,blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"U1":{"x":8,"y":5}}}
+route red gen | t1 | E | g1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"U1":{"x":8,"y":5}},"deadTurrets":["greenT","blueT"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Crossing Lasers
+tutorial false
+start 1 10
+exit 9 12
+hint Two source turrets solve different phases. Offset their shots so beams do not collide.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+mirror 12 5 slash
+push B1 block 4 10
+push M1 mirror 8 8 slash
+turret left 3 8 cooldown=2.6 timer=1.8 color=R
+turret right 15 8 cooldown=2.6 timer=1.8 color=R
+turret s1 10 3 cooldown=3.4 timer=3.1 color=R shielded=true
+generator g1 8 3 req=null
+button b1 5 10 group=0
+doorTile 8 5 group=0
+route left generator | left | E | g1 | {"doorsOpen":[0],"pushables":{"M1":{"x":8,"y":8,"o":"slash"}}}
+route right kills shield | right | W | s1 | {"deadGenerators":["g1"],"pushables":{"M1":{"x":10,"y":8,"o":"back"}}}
+route left self | left | NE | left | {}
+route right self | right | NW | right | {}
+@end
+
+@level Bullet Parliament
+tutorial false
+start 9 10
+exit 9 12
+hint A survival room: push the bunker block north to leave, then use the bait lanes to make the room destroy itself.
+occlusions 8,9 10,9 8,10 10,10 8,11 10,11 8,5 9,5 10,5 8,6 10,6 8,7 10,7
+mirror 5 5 back
+mirror 13 5 slash
+mirror 5 11 back
+mirror 13 11 slash
+mirror 4 3 slash
+mirror 14 3 back
+push M1 mirror 7 6 slash
+push M2 mirror 11 6 back
+push B1 block 9 8
+turret t1 2 2 cooldown=2.4 timer=1.2 color=R
+turret t2 16 2 cooldown=2.53 timer=1.38 color=R
+turret t3 2 5 cooldown=2.66 timer=1.56 color=R
+turret t4 16 5 cooldown=2.79 timer=1.74 color=R
+turret t5 2 8 cooldown=2.92 timer=1.92 color=R
+turret t6 16 8 cooldown=3.05 timer=2.0999999999999996 color=R
+turret t7 5 10 cooldown=3.1799999999999997 timer=2.2800000000000002 color=R
+turret t8 13 10 cooldown=3.31 timer=2.46 color=R
+@end
+
+@level Prism Locksmith
+tutorial false
+start 1 10
+exit 9 12
+hint Use raw red, one-bounce green, and two-bounce blue deliberately. Move the second prism after the blue lock opens.
+occlusions 2,9 3,9 3,10 2,11 3,11
+rails 9,5 8,6 7,5
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret redT 12 8 cooldown=2.6 timer=1.8 color=R req=R
+turret greenT 8 3 cooldown=2.6 timer=1.8 color=R req=G
+turret blueT 13 5 cooldown=2.6 timer=1.8 color=R req=B
+generator gB 12 5 req=B
+generator gG 8 4 req=G
+route blue gen | t1 | E | gB | {}
+route green gen | t1 | E | gG | {"pushables":{"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB"]}
+route red target | t1 | E | redT | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"]}
+route green target | t1 | E | greenT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT"]}
+route blue target | t1 | E | blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT","greenT"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Blackout Carousel
+tutorial false
+start 1 10
+exit 9 12
+hint Doors block sight. Box-hold one shutter, stand on another, and use the mobile turret at two different track positions.
+occlusions 2,9 3,9 3,10 2,11 3,11
+tracks 10,8 11,8 12,8 13,8 14,8
+mirror 6 5 back
+push B1 block 4 10
+push M1 mirror 8 8 back
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret m1 12 8 cooldown=2.0 timer=1.0 color=R mobile=true axis=x min=10 max=14 speed=1.0 dir=1
+turret s1 8 2 cooldown=2.6 timer=1.8 color=R shielded=true
+generator g1 8 3 req=null
+button b1 5 10 group=0
+button b2 1 8 group=1
+doorTile 8 5 group=1
+doorTile 10 8 group=0
+route g1 mobile | m1 | W | g1 | {"doorsOpen":[0,1],"pushables":{"M1":{"x":8,"y":8,"o":"back"}}}
+route shield mobile | m1 | W | s1 | {"doorsOpen":[0,1],"pushables":{"M1":{"x":8,"y":8,"o":"back"}},"deadGenerators":["g1"]}
+route mobile killed | t1 | E | m1 | {"deadGenerators":["g1"],"doorsOpen":[0],"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}}}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Seventeen Degrees
+tutorial false
+start 6 9
+exit 9 12
+hint Set two prisms for the shallow-steep-shallow blue shot, then move the upper prism aside for the green shot.
+occlusions 2,11 3,11
+slitsV 10,3
+slitsH 4,9 6,8 11,4
+mirror 5 7 back
+push Q1 prism 7 7 horizontal
+push Q2 prism 8 5 horizontal
+turret t1 2 10 cooldown=2.6 timer=1.8 color=R shielded=true
+generator gB 13 3 req=B
+generator gG 10 3 req=G
+route blue generator | t1 | ENE | gB | {"pushables":{"Q1":{"x":8,"y":7,"o":"slash"},"Q2":{"x":9,"y":5,"o":"slash"}}}
+route green generator | t1 | ENE | gG | {"pushables":{"Q1":{"x":8,"y":7,"o":"slash"},"Q2":{"x":7,"y":5,"o":"horizontal"}},"deadGenerators":["gB"]}
+route self | t1 | NE | t1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"slash"},"Q2":{"x":7,"y":5,"o":"horizontal"}},"deadGenerators":["gB","gG"]}
+@end
+
+@level Relay Court
+tutorial false
+start 1 10
+exit 9 12
+hint Relay graph: two prism positions unlock blue then green; then raw, green, and blue turret routes clear the court.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret redT 13 8 cooldown=2.6 timer=1.8 color=R req=R
+turret greenT 8 2 cooldown=2.6 timer=1.8 color=R req=G
+turret blueT 13 5 cooldown=2.6 timer=1.8 color=R req=B
+generator gB 12 5 req=B
+generator gG 8 3 req=G
+button b1 5 10 group=0
+doorTile 10 8 group=0
+route blue generator | t1 | E | gB | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"}}}
+route green generator | t1 | E | gG | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB"]}
+route red target | t1 | E | redT | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"]}
+route green target | t1 | E | greenT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT"]}
+route blue target | t1 | E | blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT","greenT"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level The Borrowed Weapon
+tutorial false
+start 9 10
+exit 9 12
+hint Finale: build blue, green, violet shield, and red generator routes before clearing the color-locked turrets and source.
+occlusions 10,9 8,10 10,10 8,11 10,11
+rails 9,8 9,5 8,6 10,6
+mirror 6 5 back
+push B1 block 4 10
+push Q1 prism 7 8 horizontal
+push Q2 prism 8 5 slash
+push M1 mirror 10 7 horizontal
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R shielded=true
+turret redT 14 8 cooldown=2.6 timer=1.8 color=R req=R shielded=true
+turret greenT 8 2 cooldown=2.6 timer=1.8 color=R req=G
+turret blueT 13 5 cooldown=2.6 timer=1.8 color=R req=B
+turret s1 15 8 cooldown=2.6 timer=1.8 color=R shielded=true
+generator gB 12 5 req=B
+generator gG 8 3 req=G
+generator gS 11 8 req=null
+generator gR 13 8 req=R
+button b1 5 10 group=0
+doorTile 10 8 group=0
+route blue generator | t1 | E | gB | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"},"M1":{"x":10,"y":7,"o":"horizontal"}}}
+route green generator | t1 | E | gG | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB"]}
+route shield generator | t1 | E | gS | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG"]}
+route red generator | t1 | E | gR | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS"]}
+route red target | t1 | E | redT | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"]}
+route green target | t1 | E | greenT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT"]}
+route blue target | t1 | E | blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT","greenT"]}
+route shield | t1 | E | s1 | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT","greenT","blueT"]}
+route self | t1 | NE | t1 | {"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT","greenT","blueT","s1"]}
+@end
+
+@level Victory Lap
+tutorial false
+start 9 6
+exit 9 12
+hint You made it. Step once and let the prism garden celebrate.
+banner CONGRATS
+mirror 4 6 back
+mirror 3 11 slash
+mirror 12 4 back
+prism 7 9 back
+prism 11 11 slash
+prism 15 8 back
+prism 13 8 slash
+prism 6 4 slash
+prism 15 3 back
+splitter 4 9
+splitter 5 2
+splitter 7 11
+splitter 11 8
+splitter 15 9
+splitter 15 10
+push Msecret mirror 10 7 horizontal
+generator gFire 13 1 req=null
+generator gPop 1 9 req=null
+generator gKeep 17 1 req=null
+generator gNW 8 1 req=null
+generator gSW 5 11 req=null
+generator gNE 16 1 req=null
+generator gSE 17 11 req=null
+turret party 1 6 cooldown=0.55 timer=0.15 color=R shielded=true
+turret partyNW 1 2 cooldown=0.72 timer=0.24 color=G shielded=true
+turret partySW 1 10 cooldown=0.76 timer=0.34 color=B shielded=true
+turret partyNE 17 2 cooldown=0.68 timer=0.28 color=B shielded=true
+turret partySE 17 10 cooldown=0.74 timer=0.38 color=G shielded=true
+route confetti | party | E | gFire,gPop,gSW | {}
+route northwest confetti | partyNW | ESE | gNW | {}
+route southwest confetti | partySW | ENE | gSW | {}
+route northeast confetti | partyNE | WSW | gNE | {}
+route southeast confetti | partySE | WNW | gSE | {}
+route secret keepalive | partyNE | WSW | gKeep | {"deadGenerators":["gFire","gPop","gNW","gSW","gNE","gSE"],"pushables":{"Msecret":{"x":15,"y":2,"o":"slash"}}}
+route secret northeast cleanup | party | E | partyNE | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"pushables":{"Msecret":{"x":13,"y":2,"o":"slash"}}}
+route secret northwest cleanup | partySW | ENE | partyNW | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE"],"pushables":{"Msecret":{"x":13,"y":2,"o":"slash"}}}
+route secret southwest cleanup | party | E | partySW | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE","partyNW"],"pushables":{"Msecret":{"x":7,"y":10,"o":"slash"}}}
+route secret southeast cleanup | partySE | WNW | partySE | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE","partyNW","partySW"],"pushables":{"Msecret":{"x":10,"y":10,"o":"back"}}}
+route secret final self | party | E | party | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE","partyNW","partySW","partySE"],"pushables":{"Msecret":{"x":1,"y":8,"o":"back"}}}
+@end

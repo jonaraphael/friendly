@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Friendly Fire — Fixed</title>
+<style>
+:root{--bg:#070914;--panel:rgba(15,23,42,.78);--ink:#f5f7ff;--muted:#a9b7d9;--hot:#ff4d6d;--gold:#ffd166;--cyan:#56e6ff;--green:#7dff8c;--violet:#c084fc;--line:rgba(255,255,255,.13)}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 10%,rgba(86,230,255,.14),transparent 27rem),radial-gradient(circle at 80% 20%,rgba(255,77,109,.12),transparent 29rem),linear-gradient(160deg,#050610,#091226 55%,#150b22);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(255,255,255,.025) 50%,rgba(0,0,0,.025) 50%);background-size:100% 4px;mix-blend-mode:soft-light}.page{width:min(1200px,calc(100vw - 28px));margin:20px auto 32px}.top{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;margin-bottom:14px}h1{margin:0;font-size:clamp(28px,4vw,50px);letter-spacing:-.08em;text-transform:uppercase;text-shadow:0 0 12px rgba(86,230,255,.35),4px 4px 0 rgba(255,77,109,.18)}.sub{margin-top:8px;color:var(--muted);font-size:13px;max-width:850px}.status,.side{border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.36),inset 0 0 0 1px rgba(255,255,255,.04);backdrop-filter:blur(16px)}.status{min-width:270px;padding:12px 14px}.status b{display:block;color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.12em}.status span{display:block;margin-top:6px}.layout{display:grid;grid-template-columns:minmax(0,912px) minmax(250px,1fr);gap:18px}.cab{padding:12px;border-radius:24px;background:linear-gradient(135deg,rgba(86,230,255,.16),transparent 28%),linear-gradient(315deg,rgba(255,77,109,.13),transparent 30%),rgba(5,8,18,.84);border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 100px rgba(0,0,0,.48)}.screen{overflow:hidden;border-radius:16px;background:#050712;box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}canvas{display:block;width:100%;height:auto;image-rendering:pixelated;background:#10192d}.side{padding:16px}.pt{margin:0 0 10px;color:var(--gold);font-size:13px;text-transform:uppercase;letter-spacing:.14em}.hint{min-height:120px;padding:12px;border-radius:14px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);line-height:1.45;font-size:13px}.rules{display:grid;gap:9px;margin:14px 0;padding:0;list-style:none;color:var(--muted);font-size:12px;line-height:1.35}.rules li{padding-left:16px;position:relative}.rules li:before{content:"◆";position:absolute;left:0;color:var(--cyan);font-size:9px;top:2px}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}button{cursor:pointer;border:1px solid rgba(255,255,255,.16);border-radius:14px;color:var(--ink);background:rgba(255,255,255,.08);padding:10px 12px;font:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.06em}.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:14px;color:var(--muted);font-size:11px}.sw{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-2px;border-radius:2px}.touch{display:none;margin-top:12px;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,42px);gap:7px;justify-content:center}.touch button{padding:0}.up{grid-column:2}.left{grid-column:1;grid-row:2}.wait{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}@media(max-width:940px){.top,.layout{grid-template-columns:1fr}.status{min-width:0}.touch{display:grid}.legend{grid-template-columns:1fr}}
+</style></head><body><main class="page"><header class="top"><div><h1>Friendly Fire</h1><div class="sub">Fixed 21-room build. 16-direction enemy lasers, verified beam routes, safe starts, delayed tutorial markers, mirrors, prisms, rails, splitters, buttons, sliding doors, and color-locked targets.</div></div><section class="status"><b id="levelKicker">Room</b><span id="levelName">Loading…</span></section></header><section class="layout"><section class="cab"><div class="screen"><canvas id="game" width="912" height="624"></canvas></div></section><aside class="side"><p class="pt">Current puzzle</p><div class="hint" id="hint">Loading…</div><ul class="rules"><li>Move with WASD / arrows. Push blocks, mirrors, prisms, and splitters.</li><li>Turrets fire only along exact 16-direction lanes when they can see you.</li><li>Mirror push orientation: E=/, W=\, S=vertical, N=horizontal.</li><li>Prisms reflect and shift color: R→G→B→R. Wrong-color targets absorb shots.</li><li>Rails stop movable mirrors/prisms/splitters, but not you or lasers.</li></ul><div class="buttons"><button id="resetBtn">Reset</button><button id="nextBtn">Skip</button></div><div class="touch"><button class="up" data-dir="up">↑</button><button class="left" data-dir="left">←</button><button class="wait" data-dir="wait">·</button><button class="right" data-dir="right">→</button><button class="down" data-dir="down">↓</button></div><div class="legend"><div><span class="sw" style="background:#ff4d6d"></span>Red turret/laser</div><div><span class="sw" style="background:#7dff8c"></span>Green lock</div><div><span class="sw" style="background:#56e6ff"></span>Blue/glass</div><div><span class="sw" style="background:#f0abfc"></span>Prism</div><div><span class="sw" style="background:#cfd8ff"></span>Mirror</div><div><span class="sw" style="background:#ffd166"></span>Splitter/button</div><div><span class="sw" style="background:#64748b"></span>Mirror rail</div><div><span class="sw" style="background:#050711"></span>Occlusion</div></div></aside></section></main>
+<script id="level-cards" type="text/plain">
+# Friendly Fire level cards. Edit this block only to add/change rooms.
+# Syntax quick ref:
+# @level Name
+# tutorial true|false
+# start x y
+# exit x y
+# hint free text
+# banner optional overlay text
+# occlusions 2,9 3,9   / glass ... / slitsV ... / slitsH ... / rails ... / tracks ... / markers ...
+# mirror x y slash|back|vertical|horizontal [id]
+# prism x y slash|back|vertical|horizontal [id]
+# push id block|mirror|prism|splitter x y [orientation] [k=v ...]
+# turret id x y cooldown=2.6 timer=1.8 color=R req=G shielded=true mobile=true axis=x min=10 max=14 speed=.9 dir=1
+# generator id x y req=R|G|B|null
+# button id x y group=0
+# doorTile x y group=0
+# route name | source | DIR | expected[,expected2] | {json state}
+# @end
+
+@level Borrowed Shot
+tutorial true
+start 1 10
+exit 9 12
+hint Step onto the bait lane, then dodge. The slash mirror returns the shot into its source.
+occlusions 2,9 3,9 3,10 2,11 3,11
+markers 9,7
+mirror 8 6 slash
+turret t1 5 3 cooldown=3.0 timer=2.0 color=R
+route self | t1 | SE | t1 | {}
+@end
+
+@level Push the Angle
+tutorial true
+start 1 10
+exit 9 12
+hint Push the movable mirror east to kill the upper turret. The added occlusion blocks the upper turret from using the return mirror, so both mirrors are required.
+occlusions 2,9 3,9 3,10 2,11 3,11 7,4
+markers 8,8
+mirror 6 5 back
+push B1 block 4 10
+push M1 mirror 7 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret t2 8 3 cooldown=3.4 timer=2.9 color=R
+route kill t2 | t1 | E | t2 | {"pushables":{"M1":{"x":8,"y":8,"o":"slash"}}}
+route kill t1 | t1 | NE | t1 | {}
+@end
+
+@level Power Before Gun
+tutorial true
+start 1 10
+exit 9 12
+hint First destroy the generator through glass. Only then can shielded turrets be killed. Preserve the source until cleanup.
+occlusions 2,9 3,9 3,10 2,11 3,11
+glass 6,8 7,8 8,8 9,8 10,8 11,8
+markers 11,8
+mirror 7 6 slash
+mirror 6 5 back
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 9 2 cooldown=3.2 timer=2.8 color=R shielded=true
+generator g1 12 8 req=null
+route generator | t1 | E | g1 | {}
+route shield | t1 | ENE | s1 | {"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Mirror Rails
+tutorial false
+start 1 10
+exit 9 12
+hint Rails stop movable mirrors but not you or lasers. The occlusion blocks the upper turret from self-solving with the fixed return mirror.
+occlusions 2,9 3,9 3,10 2,11 3,11 7,4
+rails 9,8 9,7 9,9 8,7 8,9
+mirror 6 5 back
+push M1 mirror 7 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret t2 8 3 cooldown=3.4 timer=3.0 color=R
+route kill t2 | t1 | E | t2 | {"pushables":{"M1":{"x":8,"y":8,"o":"slash"}}}
+route self | t1 | NE | t1 | {}
+@end
+
+@level First Color
+tutorial false
+start 1 10
+exit 9 12
+hint The obvious straight shot hits the green generator as raw red and fails. Push the prism north into the lane so the same shot visibly changes R→G before hitting it.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 9 horizontal
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 9 3 cooldown=3.1 timer=2.7 color=R shielded=true
+generator g1 12 8 req=G
+route green generator | t1 | E | g1 | {"pushables":{"Q1":{"x":8,"y":8,"o":"horizontal"}}}
+route shield via prism | t1 | E | s1 | {"pushables":{"Q1":{"x":9,"y":8,"o":"slash"}},"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Blue Requires Two
+tutorial false
+start 1 10
+exit 9 12
+hint Blue requires two prism bounces. After the generator drops the shield, move the prism out of the raw-red lane.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.1 timer=2.6 color=R shielded=true
+generator g1 12 5 req=B
+route blue generator | t1 | E | g1 | {}
+route shield raw | t1 | E | s1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Hold the Shutter
+tutorial false
+start 1 10
+exit 9 12
+hint Use the box to hold one button while you stand on the other. Closed doors block line of sight and lasers.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push B1 block 4 10
+push M1 mirror 8 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.2 timer=2.8 color=R shielded=true
+generator g1 8 3 req=null
+button b1 5 10 group=0
+button b2 1 8 group=1
+doorTile 8 5 group=1
+doorTile 10 8 group=0
+route generator through opened door | t1 | E | g1 | {"doorsOpen":[1]}
+route shield raw through opened door | t1 | E | s1 | {"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1"],"doorsOpen":[0]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Unfixed Splitter
+tutorial false
+start 1 10
+exit 9 12
+hint Move the splitter into the vertical beam. It emits only the two perpendicular beams, so the side turrets die together.
+occlusions 2,9 3,9 3,10 2,11 3,11
+rails 9,4 9,6 7,4 7,6
+mirror 8 8 slash
+mirror 6 5 back
+push U1 splitter 9 5
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret t2 7 5 cooldown=3.5 timer=3.0 color=R
+turret t3 12 5 cooldown=3.5 timer=3.0 color=R
+route splitter kills sides | t1 | E | t2,t3 | {"pushables":{"U1":{"x":8,"y":5}}}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Moving Crossfire
+tutorial false
+start 1 10
+exit 9 12
+hint Wait for the mobile turret to enter the row, then bait it west through the mirror into the generator.
+occlusions 2,9 3,9 3,10 2,11 3,11
+tracks 10,8 11,8 12,8 13,8 14,8
+mirror 6 5 back
+push M1 mirror 8 8 back
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret m1 12 8 cooldown=2.1 timer=1.0 color=R mobile=true axis=x min=10 max=14 speed=0.9 dir=1
+turret s1 8 2 cooldown=3.3 timer=2.9 color=R shielded=true
+generator g1 8 3 req=null
+route mobile generator | m1 | W | g1 | {"pushables":{"M1":{"x":8,"y":8,"o":"back"}}}
+route mobile shield | m1 | W | s1 | {"pushables":{"M1":{"x":8,"y":8,"o":"back"}},"deadGenerators":["g1"]}
+route source kills mobile | t1 | E | m1 | {"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Wrong First Loses
+tutorial false
+start 1 10
+exit 9 12
+hint Order matters: blue generator, raw-red shielded turret, green-gated turret, then source cleanup.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.2 timer=2.9 color=R shielded=true req=R
+turret tG 8 3 cooldown=3.4 timer=3.0 color=R req=G
+generator g1 12 5 req=B
+route blue generator | t1 | E | g1 | {}
+route red shield | t1 | E | s1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["g1"]}
+route green turret | t1 | E | tG | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["g1"],"deadTurrets":["s1"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Thread the Needle
+tutorial false
+start 6 7
+exit 9 12
+hint Push the mirror into the shallow lane so the shield generator can only be hit through both slit pairs, then reuse it for the return shot.
+occlusions 2,11 3,11 6,6
+slitsV 9,5 10,3
+slitsH 4,9 6,8
+push M1 mirror 7 7 horizontal
+turret t1 2 10 cooldown=2.6 timer=1.8 color=R shielded=true
+generator g1 11 1 req=null
+route needle generator | t1 | ENE | g1 | {"pushables":{"M1":{"x":8,"y":7,"o":"slash"}}}
+route self | t1 | NE | t1 | {"pushables":{"M1":{"x":5,"y":7,"o":"back"}},"deadGenerators":["g1"]}
+@end
+
+@level Same Mirror Twice
+tutorial false
+start 1 10
+exit 9 12
+hint Use the same movable mirror twice: first as / for the upper generator, then as \ for the lower generator.
+occlusions 2,9 3,9 3,10 2,11 3,11
+rails 9,8 8,9 7,9 8,7
+mirror 6 5 back
+push M1 mirror 8 8 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret s1 12 8 cooldown=3.2 timer=2.8 color=R shielded=true
+generator g1 8 3 req=null
+generator g2 7 11 req=null
+route g1 | t1 | E | g1 | {}
+route g2 | t1 | E | g2 | {"pushables":{"M1":{"x":7,"y":8,"o":"back"}},"deadGenerators":["g1"]}
+route shield raw | t1 | E | s1 | {"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}},"deadGenerators":["g1","g2"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Chromatic Split
+tutorial false
+start 1 10
+exit 9 12
+hint Feed the splitter with green. One branch stays green; the other branch hits a prism and turns blue.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+prism 10 5 back q1
+push Q1 prism 8 8 slash
+push U1 splitter 8 5
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret greenT 7 5 cooldown=3.5 timer=3.1 color=R req=G
+turret blueT 10 8 cooldown=3.5 timer=3.2 color=R req=B
+generator g1 12 8 req=R
+route split colors | t1 | E | greenT,blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"U1":{"x":8,"y":5}}}
+route red gen | t1 | E | g1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"U1":{"x":8,"y":5}},"deadTurrets":["greenT","blueT"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Crossing Lasers
+tutorial false
+start 1 10
+exit 9 12
+hint Two source turrets solve different phases. Offset their shots so beams do not collide.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+mirror 12 5 slash
+push B1 block 4 10
+push M1 mirror 8 8 slash
+turret left 3 8 cooldown=2.6 timer=1.8 color=R
+turret right 15 8 cooldown=2.6 timer=1.8 color=R
+turret s1 10 3 cooldown=3.4 timer=3.1 color=R shielded=true
+generator g1 8 3 req=null
+button b1 5 10 group=0
+doorTile 8 5 group=0
+route left generator | left | E | g1 | {"doorsOpen":[0],"pushables":{"M1":{"x":8,"y":8,"o":"slash"}}}
+route right kills shield | right | W | s1 | {"deadGenerators":["g1"],"pushables":{"M1":{"x":10,"y":8,"o":"back"}}}
+route left self | left | NE | left | {}
+route right self | right | NW | right | {}
+@end
+
+@level Bullet Parliament
+tutorial false
+start 9 10
+exit 9 12
+hint A survival room: push the bunker block north to leave, then use the bait lanes to make the room destroy itself.
+occlusions 8,9 10,9 8,10 10,10 8,11 10,11 8,5 9,5 10,5 8,6 10,6 8,7 10,7
+mirror 5 5 back
+mirror 13 5 slash
+mirror 5 11 back
+mirror 13 11 slash
+mirror 4 3 slash
+mirror 14 3 back
+push M1 mirror 7 6 slash
+push M2 mirror 11 6 back
+push B1 block 9 8
+turret t1 2 2 cooldown=2.4 timer=1.2 color=R
+turret t2 16 2 cooldown=2.53 timer=1.38 color=R
+turret t3 2 5 cooldown=2.66 timer=1.56 color=R
+turret t4 16 5 cooldown=2.79 timer=1.74 color=R
+turret t5 2 8 cooldown=2.92 timer=1.92 color=R
+turret t6 16 8 cooldown=3.05 timer=2.0999999999999996 color=R
+turret t7 5 10 cooldown=3.1799999999999997 timer=2.2800000000000002 color=R
+turret t8 13 10 cooldown=3.31 timer=2.46 color=R
+@end
+
+@level Prism Locksmith
+tutorial false
+start 1 10
+exit 9 12
+hint Use raw red, one-bounce green, and two-bounce blue deliberately. Move the second prism after the blue lock opens.
+occlusions 2,9 3,9 3,10 2,11 3,11
+rails 9,5 8,6 7,5
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret redT 12 8 cooldown=2.6 timer=1.8 color=R req=R
+turret greenT 8 3 cooldown=2.6 timer=1.8 color=R req=G
+turret blueT 13 5 cooldown=2.6 timer=1.8 color=R req=B
+generator gB 12 5 req=B
+generator gG 8 4 req=G
+route blue gen | t1 | E | gB | {}
+route green gen | t1 | E | gG | {"pushables":{"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB"]}
+route red target | t1 | E | redT | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"]}
+route green target | t1 | E | greenT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT"]}
+route blue target | t1 | E | blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT","greenT"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Blackout Carousel
+tutorial false
+start 1 10
+exit 9 12
+hint Doors block sight. Box-hold one shutter, stand on another, and use the mobile turret at two different track positions.
+occlusions 2,9 3,9 3,10 2,11 3,11
+tracks 10,8 11,8 12,8 13,8 14,8
+mirror 6 5 back
+push B1 block 4 10
+push M1 mirror 8 8 back
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret m1 12 8 cooldown=2.0 timer=1.0 color=R mobile=true axis=x min=10 max=14 speed=1.0 dir=1
+turret s1 8 2 cooldown=2.6 timer=1.8 color=R shielded=true
+generator g1 8 3 req=null
+button b1 5 10 group=0
+button b2 1 8 group=1
+doorTile 8 5 group=1
+doorTile 10 8 group=0
+route g1 mobile | m1 | W | g1 | {"doorsOpen":[0,1],"pushables":{"M1":{"x":8,"y":8,"o":"back"}}}
+route shield mobile | m1 | W | s1 | {"doorsOpen":[0,1],"pushables":{"M1":{"x":8,"y":8,"o":"back"}},"deadGenerators":["g1"]}
+route mobile killed | t1 | E | m1 | {"deadGenerators":["g1"],"doorsOpen":[0],"pushables":{"M1":{"x":8,"y":7,"o":"horizontal"}}}
+route self | t1 | NE | t1 | {}
+@end
+
+@level Seventeen Degrees
+tutorial false
+start 6 9
+exit 9 12
+hint Set two prisms for the shallow-steep-shallow blue shot, then move the upper prism aside for the green shot.
+occlusions 2,11 3,11
+slitsV 10,3
+slitsH 4,9 6,8 11,4
+mirror 5 7 back
+push Q1 prism 7 7 horizontal
+push Q2 prism 8 5 horizontal
+turret t1 2 10 cooldown=2.6 timer=1.8 color=R shielded=true
+generator gB 13 3 req=B
+generator gG 10 3 req=G
+route blue generator | t1 | ENE | gB | {"pushables":{"Q1":{"x":8,"y":7,"o":"slash"},"Q2":{"x":9,"y":5,"o":"slash"}}}
+route green generator | t1 | ENE | gG | {"pushables":{"Q1":{"x":8,"y":7,"o":"slash"},"Q2":{"x":7,"y":5,"o":"horizontal"}},"deadGenerators":["gB"]}
+route self | t1 | NE | t1 | {"pushables":{"Q1":{"x":8,"y":7,"o":"slash"},"Q2":{"x":7,"y":5,"o":"horizontal"}},"deadGenerators":["gB","gG"]}
+@end
+
+@level Relay Court
+tutorial false
+start 1 10
+exit 9 12
+hint Relay graph: two prism positions unlock blue then green; then raw, green, and blue turret routes clear the court.
+occlusions 2,9 3,9 3,10 2,11 3,11
+mirror 6 5 back
+push Q1 prism 8 8 slash
+push Q2 prism 8 5 slash
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R
+turret redT 13 8 cooldown=2.6 timer=1.8 color=R req=R
+turret greenT 8 2 cooldown=2.6 timer=1.8 color=R req=G
+turret blueT 13 5 cooldown=2.6 timer=1.8 color=R req=B
+generator gB 12 5 req=B
+generator gG 8 3 req=G
+button b1 5 10 group=0
+doorTile 10 8 group=0
+route blue generator | t1 | E | gB | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"}}}
+route green generator | t1 | E | gG | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB"]}
+route red target | t1 | E | redT | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"]}
+route green target | t1 | E | greenT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT"]}
+route blue target | t1 | E | blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"}},"deadGenerators":["gB","gG"],"deadTurrets":["redT","greenT"]}
+route self | t1 | NE | t1 | {}
+@end
+
+@level The Borrowed Weapon
+tutorial false
+start 9 10
+exit 9 12
+hint Finale: build blue, green, violet shield, and red generator routes before clearing the color-locked turrets and source.
+occlusions 10,9 8,10 10,10 8,11 10,11
+rails 9,8 9,5 8,6 10,6
+mirror 6 5 back
+push B1 block 4 10
+push Q1 prism 7 8 horizontal
+push Q2 prism 8 5 slash
+push M1 mirror 10 7 horizontal
+turret t1 3 8 cooldown=2.6 timer=1.8 color=R shielded=true
+turret redT 14 8 cooldown=2.6 timer=1.8 color=R req=R shielded=true
+turret greenT 8 2 cooldown=2.6 timer=1.8 color=R req=G
+turret blueT 13 5 cooldown=2.6 timer=1.8 color=R req=B
+turret s1 15 8 cooldown=2.6 timer=1.8 color=R shielded=true
+generator gB 12 5 req=B
+generator gG 8 3 req=G
+generator gS 11 8 req=null
+generator gR 13 8 req=R
+button b1 5 10 group=0
+doorTile 10 8 group=0
+route blue generator | t1 | E | gB | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"},"M1":{"x":10,"y":7,"o":"horizontal"}}}
+route green generator | t1 | E | gG | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB"]}
+route shield generator | t1 | E | gS | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG"]}
+route red generator | t1 | E | gR | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS"]}
+route red target | t1 | E | redT | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"]}
+route green target | t1 | E | greenT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT"]}
+route blue target | t1 | E | blueT | {"pushables":{"Q1":{"x":8,"y":8,"o":"slash"},"Q2":{"x":8,"y":5,"o":"slash"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT","greenT"]}
+route shield | t1 | E | s1 | {"doorsOpen":[0],"pushables":{"Q1":{"x":8,"y":7,"o":"horizontal"},"Q2":{"x":7,"y":5,"o":"back"},"M1":{"x":10,"y":7,"o":"horizontal"}},"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT","greenT","blueT"]}
+route self | t1 | NE | t1 | {"deadGenerators":["gB","gG","gS","gR"],"deadTurrets":["redT","greenT","blueT","s1"]}
+@end
+
+@level Victory Lap
+tutorial false
+start 9 6
+exit 9 12
+hint You made it. Step once and let the prism garden celebrate.
+banner CONGRATS
+mirror 4 6 back
+mirror 3 11 slash
+mirror 12 4 back
+prism 7 9 back
+prism 11 11 slash
+prism 15 8 back
+prism 13 8 slash
+prism 6 4 slash
+prism 15 3 back
+splitter 4 9
+splitter 5 2
+splitter 7 11
+splitter 11 8
+splitter 15 9
+splitter 15 10
+push Msecret mirror 10 7 horizontal
+generator gFire 13 1 req=null
+generator gPop 1 9 req=null
+generator gKeep 17 1 req=null
+generator gNW 8 1 req=null
+generator gSW 5 11 req=null
+generator gNE 16 1 req=null
+generator gSE 17 11 req=null
+turret party 1 6 cooldown=0.55 timer=0.15 color=R shielded=true
+turret partyNW 1 2 cooldown=0.72 timer=0.24 color=G shielded=true
+turret partySW 1 10 cooldown=0.76 timer=0.34 color=B shielded=true
+turret partyNE 17 2 cooldown=0.68 timer=0.28 color=B shielded=true
+turret partySE 17 10 cooldown=0.74 timer=0.38 color=G shielded=true
+route confetti | party | E | gFire,gPop,gSW | {}
+route northwest confetti | partyNW | ESE | gNW | {}
+route southwest confetti | partySW | ENE | gSW | {}
+route northeast confetti | partyNE | WSW | gNE | {}
+route southeast confetti | partySE | WNW | gSE | {}
+route secret keepalive | partyNE | WSW | gKeep | {"deadGenerators":["gFire","gPop","gNW","gSW","gNE","gSE"],"pushables":{"Msecret":{"x":15,"y":2,"o":"slash"}}}
+route secret northeast cleanup | party | E | partyNE | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"pushables":{"Msecret":{"x":13,"y":2,"o":"slash"}}}
+route secret northwest cleanup | partySW | ENE | partyNW | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE"],"pushables":{"Msecret":{"x":13,"y":2,"o":"slash"}}}
+route secret southwest cleanup | party | E | partySW | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE","partyNW"],"pushables":{"Msecret":{"x":7,"y":10,"o":"slash"}}}
+route secret southeast cleanup | partySE | WNW | partySE | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE","partyNW","partySW"],"pushables":{"Msecret":{"x":10,"y":10,"o":"back"}}}
+route secret final self | party | E | party | {"deadGenerators":["gFire","gPop","gKeep","gNW","gSW","gNE","gSE"],"deadTurrets":["partyNE","partyNW","partySW","partySE"],"pushables":{"Msecret":{"x":1,"y":8,"o":"back"}}}
+@end
+</script>
+<script>
+(() => {
+'use strict';
+function parseLevelCards(raw){
+ const coordFields=new Set(['walls','occlusions','glass','slitsV','slitsH','rails','tracks','markers']);
+ const base=name=>({name,tutorial:false,p:{x:1,y:10},door:{x:9,y:12},hint:'',banner:'',walls:[],occlusions:[],glass:[],slitsV:[],slitsH:[],rails:[],mirrors:[],prisms:[],splitters:[],pushables:[],turrets:[],generators:[],buttons:[],doors:[],tracks:[],markers:[],routes:[]});
+ const num=v=>{const n=Number(v);if(!Number.isFinite(n))throw new Error(`Expected number, got ${v}`);return n;};
+ const val=v=>{if(v==='true')return true;if(v==='false')return false;if(v==='null')return null;if(/^-?\d+(?:\.\d+)?$/.test(v))return Number(v);return v;};
+ const orient=o=>{if(!o)return'slash';if(o==='/')return'slash';if(o==='\\')return'back';if(o==='|')return'vertical';if(o==='-')return'horizontal';return o;};
+ const attrs=toks=>{const o={};for(const t of toks){if(!t)continue;const i=t.indexOf('=');if(i<0)throw new Error(`Bad attr ${t}`);const k=t.slice(0,i),v=t.slice(i+1);o[k]=k==='o'?orient(v):val(v);}return o;};
+ const coords=toks=>toks.filter(Boolean).map(t=>{const [x,y]=t.split(',');return{x:num(x),y:num(y)};});
+ const need=(l,line)=>{if(!l)throw new Error(`Line outside @level block: ${line}`);};
+ const levels=[];let level=null;
+ raw.split(/\r?\n/).forEach((rawLine,idx)=>{const line=rawLine.trim();if(!line||line.startsWith('#')||line.startsWith('//'))return;
+  if(line.startsWith('@level ')){if(level)levels.push(level);level=base(line.slice(7).trim());return;}
+  if(line==='@end'){need(level,line);levels.push(level);level=null;return;}
+  need(level,line);
+  if(line.startsWith('hint ')){level.hint=line.slice(5);return;}
+  if(line.startsWith('banner ')){level.banner=line.slice(7);return;}
+  if(line.startsWith('route ')){const parts=line.slice(6).split('|').map(s=>s.trim());if(parts.length<4)throw new Error(`Bad route on line ${idx+1}: ${line}`);const [name,source,dir,expectRaw]=parts;const stateRaw=parts.slice(4).join('|').trim();level.routes.push({name,source,dir,expect:expectRaw.includes(',')?expectRaw.split(',').map(s=>s.trim()).filter(Boolean):expectRaw,state:stateRaw?JSON.parse(stateRaw):{}});return;}
+  const [cmd,...args]=line.split(/\s+/);
+  if(cmd==='tutorial'){level.tutorial=!!val(args[0]);return;}
+  if(cmd==='start'||cmd==='p'){level.p={x:num(args[0]),y:num(args[1])};return;}
+  if(cmd==='exit'||cmd==='door'){level.door={x:num(args[0]),y:num(args[1])};return;}
+  if(coordFields.has(cmd)){level[cmd].push(...coords(args));return;}
+  if(cmd==='mirror'||cmd==='prism'){const obj={x:num(args[0]),y:num(args[1]),o:orient(args[2])};if(args[3])obj.id=args[3];level[cmd==='mirror'?'mirrors':'prisms'].push(obj);return;}
+  if(cmd==='splitter'){const obj={x:num(args[0]),y:num(args[1])};if(args[2])obj.id=args[2];level.splitters.push(obj);return;}
+  if(cmd==='push'){const p={id:args[0],kind:args[1],x:num(args[2]),y:num(args[3])};let i=4;if(args[i]&&!args[i].includes('=')){p.o=orient(args[i++]);}Object.assign(p,attrs(args.slice(i)));level.pushables.push(p);return;}
+  if(cmd==='turret'){const t={id:args[0],x:num(args[1]),y:num(args[2])};Object.assign(t,attrs(args.slice(3)));level.turrets.push(t);return;}
+  if(cmd==='generator'){const g={id:args[0],x:num(args[1]),y:num(args[2])};Object.assign(g,attrs(args.slice(3)));if(!('req'in g))g.req=null;level.generators.push(g);return;}
+  if(cmd==='button'){const b={id:args[0],x:num(args[1]),y:num(args[2])};Object.assign(b,attrs(args.slice(3)));level.buttons.push(b);return;}
+  if(cmd==='doorTile'){const d={x:num(args[0]),y:num(args[1])};Object.assign(d,attrs(args.slice(2)));level.doors.push(d);return;}
+  throw new Error(`Unknown card command on line ${idx+1}: ${cmd}`);
+ });
+ if(level)levels.push(level);
+ if(!levels.length)throw new Error('No level cards parsed.');
+ return levels;
+}
+let LEVELS=parseLevelCards(document.getElementById('level-cards').textContent);
+window.parseFriendlyFireLevelCards=parseLevelCards;
+
+const COLS=19,ROWS=13,TILE=48,W=COLS*TILE,H=ROWS*TILE,HINT_DELAY=60,MOVE_TIME=.115,LASER_SPEED=7.6,MAX_PROJECTILES=260,TAU=Math.PI*2;
+const DIRS={E:[1,0],ENE:[2,-1],NE:[1,-1],NNE:[1,-2],N:[0,-1],NNW:[-1,-2],NW:[-1,-1],WNW:[-2,-1],W:[-1,0],WSW:[-2,1],SW:[-1,1],SSW:[-1,2],S:[0,1],SSE:[1,2],SE:[1,1],ESE:[2,1]};
+const DN=Object.keys(DIRS);
+const C={floorA:'#182137',floorB:'#151d31',grid:'rgba(116,160,255,.075)',wall0:'#263047',wall1:'#131a2a',wall2:'#3f4d70',occ0:'#050711',occ1:'#111729',hot:'#ff4d6d',muted:'#a9b7d9',player:'#7dff8c',playerDark:'#1d7f55',turret:'#ff4d6d',turretDark:'#701e35',laserR:'#ff4d6d',laserG:'#7dff8c',laserB:'#56e6ff',laserCore:'#fff6c7',mirror:'#dce8ff',mirror2:'#56e6ff',glass:'#56e6ff',gold:'#ffd166',violet:'#c084fc',green:'#7dff8c',prism:'#f0abfc',rail:'#64748b',door:'#fb7185'};
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+const levelKicker=document.getElementById('levelKicker'),levelName=document.getElementById('levelName'),hintEl=document.getElementById('hint');
+let levelJumpBuffer='';
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}function lerp(a,b,t){return a+(b-a)*t;}function ease(t){return t*t*(3-2*t);}function key(x,y){return x+','+y;}function dist2(ax,ay,bx,by){const dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;}function colorNext(c){return c==='R'?'G':c==='G'?'B':'R';}function colorHex(c){return c==='G'?C.laserG:c==='B'?C.laserB:C.laserR;}function gcd(a,b){while(b){const t=a%b;a=b;b=t;}return a;}function normDir(dx,dy){if(dx===0&&dy===0)return[0,0];const g=gcd(Math.abs(dx),Math.abs(dy))||1;dx/=g;dy/=g;if(DN.some(n=>DIRS[n][0]===dx&&DIRS[n][1]===dy))return[dx,dy];let ang=Math.atan2(dy,dx),best=DIRS.E,bd=99;for(const n of DN){const d=DIRS[n],a=Math.atan2(d[1],d[0]),da=Math.abs(Math.atan2(Math.sin(a-ang),Math.cos(a-ang)));if(da<bd){bd=da;best=d;}}return[best[0],best[1]];}function quantize16(dx,dy){let ang=Math.atan2(dy,dx),best='E',bd=99;for(const n of DN){const d=DIRS[n],a=Math.atan2(d[1],d[0]),da=Math.abs(Math.atan2(Math.sin(a-ang),Math.cos(a-ang)));if(da<bd){bd=da;best=n;}}return{name:best,dx:DIRS[best][0],dy:DIRS[best][1],angle:Math.atan2(DIRS[best][1],DIRS[best][0])};}function refl(dx,dy,o){if(o==='slash')return normDir(-dy,-dx);if(o==='back')return normDir(dy,dx);if(o==='vertical')return normDir(-dx,dy);return normDir(dx,-dy);}function orientationForPush(dx,dy){if(dx>0)return'slash';if(dx<0)return'back';if(dy>0)return'vertical';return'horizontal';}function rot90(dx,dy,s){return s>0?normDir(-dy,dx):normDir(dy,-dx);}function drawText(text,x,y,color,size=12,align='left'){ctx.save();ctx.font=`800 ${size}px ui-monospace,Menlo,Consolas,monospace`;ctx.textAlign=align;ctx.textBaseline='top';ctx.fillStyle='rgba(0,0,0,.65)';ctx.fillText(text,x+2,y+2);ctx.fillStyle=color;ctx.fillText(text,x,y);ctx.restore();}
+class Game{
+ constructor(){this.keys=new Set();this.pendingDir=null;this.levelIndex=0;this.last=performance.now();this.projectileId=1;this.shake=0;this.flash=0;this.particles=[];this.secretWin=false;this.loadLevel(0);requestAnimationFrame(t=>this.frame(t));}
+ loadLevel(i){this.levelIndex=((i%LEVELS.length)+LEVELS.length)%LEVELS.length;this.raw=LEVELS[this.levelIndex];this.levelTime=0;this.projectiles=[];this.particles=[];this.dead=false;this.restartTimer=0;this.hasPlayerActed=false;this.doorOpen=false;this.secretWin=false;this.transition=1;this.fadeText=this.raw.name;this.projectileId=1;this.buildWorld();levelKicker.textContent=`Room ${this.levelIndex+1} / ${LEVELS.length}`;levelName.textContent=this.raw.name;hintEl.textContent=this.raw.hint;this.validateSpawn();}
+ buildWorld(){const L=this.raw;this.grid=Array.from({length:ROWS},()=>Array(COLS).fill('floor'));for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(x===0||y===0||x===COLS-1||y===ROWS-1)this.grid[y][x]='wall';const put=(arr,t)=>{for(const p of arr||[])this.grid[p.y][p.x]=t;};put(L.walls,'wall');put(L.occlusions,'occlusion');put(L.glass,'glass');put(L.slitsV,'slitV');put(L.slitsH,'slitH');put(L.rails,'rail');put(L.tracks,'track');this.staticMirrors=new Map();for(const m of L.mirrors||[]){this.staticMirrors.set(key(m.x,m.y),m.o);this.grid[m.y][m.x]='mirror';}this.staticPrisms=new Map();for(const p of L.prisms||[]){this.staticPrisms.set(key(p.x,p.y),p.o);this.grid[p.y][p.x]='prism';}this.staticSplitters=new Set();for(const u of L.splitters||[]){this.staticSplitters.add(key(u.x,u.y));this.grid[u.y][u.x]='splitter';}this.buttons=(L.buttons||[]).map(b=>({...b,active:false}));for(const b of this.buttons)this.grid[b.y][b.x]='button';this.doors=(L.doors||[]).map(d=>({...d}));for(const d of this.doors)this.grid[d.y][d.x]='door';this.door={...L.door};this.grid[this.door.y][this.door.x]='exit';this.player=this.makeMover(L.p.x,L.p.y);this.pushables=(L.pushables||[]).map(p=>({...this.makeMover(p.x,p.y),id:p.id,kind:p.kind,orientation:p.o||'slash'}));this.turrets=(L.turrets||[]).map((t,idx)=>({id:t.id||('t'+idx),x:t.x,y:t.y,xPos:t.x+.5,yPos:t.y+.5,alive:true,req:t.req||null,shielded:!!t.shielded,color:t.color||'R',cooldown:t.cooldown||2.5,timer:t.timer??(t.cooldown||2.5),aim:{dx:1,dy:0,angle:0,name:'E'},recoil:0,mobile:!!t.mobile,axis:t.axis||'x',min:t.min??t.x,max:t.max??t.x,speed:t.speed||1,dir:t.dir||1}));this.generators=(L.generators||[]).map(g=>({...g,alive:true,pulse:Math.random()*TAU}));this.markers=L.markers||[];this.updateButtons();this.validateNoOverlaps();}
+ validateNoOverlaps(){const seen=new Map(),add=(kind,id,x,y)=>{const k=key(x,y),tag=kind+(id?':'+id:'');if(seen.has(k))console.warn('Object overlap',this.raw.name,k,seen.get(k),tag);else seen.set(k,tag);};for(const m of this.raw.mirrors||[])add('mirror',m.id,m.x,m.y);for(const p of this.raw.prisms||[])add('prism',p.id,p.x,p.y);for(const u of this.raw.splitters||[])add('splitter',u.id,u.x,u.y);for(const p of this.pushables)add('push',p.id,p.gx,p.gy);for(const t of this.turrets)add('turret',t.id,Math.floor(t.xPos),Math.floor(t.yPos));for(const g of this.generators)add('generator',g.id,g.x,g.y);}
+ validateSpawn(){if(this.raw.banner)return;const bad=this.turrets.filter(t=>t.alive&&this.turretCanFireAtPlayer(t));if(bad.length)console.warn('Unsafe spawn?',this.raw.name,bad.map(t=>t.id));}
+ makeMover(x,y){return{gx:x,gy:y,x:x+.5,y:y+.5,fromX:x+.5,fromY:y+.5,toX:x+.5,toY:y+.5,moveT:0,moving:false};}
+ frame(now){const dt=Math.min((now-this.last)/1000,.033);this.last=now;this.update(dt);this.render();requestAnimationFrame(t=>this.frame(t));}
+ update(dt){this.levelTime+=dt;this.transition=Math.max(0,this.transition-dt*1.7);this.flash=Math.max(0,this.flash-dt*2.2);this.shake=Math.max(0,this.shake-dt*8);this.updateMovers(dt);this.updateMobiles(dt);this.updateParticles(dt);this.updateButtons();if(this.secretWin)return;if(this.dead){this.restartTimer-=dt;if(this.restartTimer<=0)this.loadLevel(this.levelIndex);return;}this.handleInput();this.updateTurrets(dt);this.updateProjectiles(dt);if(this.doorOpen&&this.player.gx===this.door.x&&this.player.gy===this.door.y&&!this.player.moving){if(this.levelIndex===LEVELS.length-1){this.secretWin=true;this.flash=.8;this.spawnSparks(this.player.x,this.player.y,80,C.gold);return;}this.loadLevel(this.levelIndex+1);}}
+ updateMovers(dt){for(const m of [this.player,...this.pushables]){if(!m.moving)continue;m.moveT+=dt/MOVE_TIME;const t=ease(clamp(m.moveT,0,1));m.x=lerp(m.fromX,m.toX,t);m.y=lerp(m.fromY,m.toY,t);if(m.moveT>=1){m.moving=false;m.x=m.toX;m.y=m.toY;m.gx=Math.floor(m.x);m.gy=Math.floor(m.y);}}}
+ updateMobiles(dt){for(const t of this.turrets){if(!t.alive||!t.mobile)continue;if(t.axis==='x'){t.xPos+=t.dir*t.speed*dt;if(t.xPos<t.min+.5){t.xPos=t.min+.5;t.dir=1;}if(t.xPos>t.max+.5){t.xPos=t.max+.5;t.dir=-1;}t.x=Math.floor(t.xPos);t.yPos=t.y+.5;}else{t.yPos+=t.dir*t.speed*dt;if(t.yPos<t.min+.5){t.yPos=t.min+.5;t.dir=1;}if(t.yPos>t.max+.5){t.yPos=t.max+.5;t.dir=-1;}t.y=Math.floor(t.yPos);t.xPos=t.x+.5;}}}
+ updateButtons(){for(const b of this.buttons)b.active=(this.player&&this.player.gx===b.x&&this.player.gy===b.y)||this.pushables.some(p=>p.kind==='block'&&p.gx===b.x&&p.gy===b.y);}
+ doorOpenAt(x,y){const d=this.doors.find(q=>q.x===x&&q.y===y);return !d||this.buttons.some(b=>b.group===d.group&&b.active);}anyGeneratorsAlive(){return this.generators.some(g=>g.alive);}tileAt(x,y){return(x>=0&&y>=0&&x<COLS&&y<ROWS)?this.grid[y][x]:'wall';}pushableAt(x,y){return this.pushables.find(p=>p.gx===x&&p.gy===y);}livingTurretAt(x,y){return this.turrets.find(t=>t.alive&&Math.floor(t.xPos)===x&&Math.floor(t.yPos)===y);}generatorAt(x,y){return this.generators.find(g=>g.alive&&g.x===x&&g.y===y);}
+ isPlayerPassable(x,y){const tile=this.tileAt(x,y);if(['wall','occlusion','glass','mirror','prism','splitter','slitV','slitH'].includes(tile))return false;if(tile==='door'&&!this.doorOpenAt(x,y))return false;if(tile==='exit'&&!this.doorOpen)return false;if(this.pushableAt(x,y)||this.livingTurretAt(x,y)||this.generatorAt(x,y))return false;return true;}
+ canPushableMoveTo(p,x,y){const tile=this.tileAt(x,y);if(['wall','occlusion','glass','mirror','prism','splitter','slitV','slitH'].includes(tile))return false;if(tile==='door'&&!this.doorOpenAt(x,y))return false;if(tile==='exit')return false;if(tile==='rail'&&['mirror','prism','splitter'].includes(p.kind))return false;if(this.pushableAt(x,y)||this.livingTurretAt(x,y)||this.generatorAt(x,y))return false;return true;}
+ handleInput(){if(this.player.moving||this.pushables.some(p=>p.moving))return;const dir=this.pendingDir||this.heldDir();this.pendingDir=null;if(!dir)return;if(dir.dx===0&&dir.dy===0){this.hasPlayerActed=true;return;}this.hasPlayerActed=true;this.tryMove(dir.dx,dir.dy);}heldDir(){if(this.keys.has('ArrowUp')||this.keys.has('w')||this.keys.has('W'))return{dx:0,dy:-1};if(this.keys.has('ArrowDown')||this.keys.has('s')||this.keys.has('S'))return{dx:0,dy:1};if(this.keys.has('ArrowLeft')||this.keys.has('a')||this.keys.has('A'))return{dx:-1,dy:0};if(this.keys.has('ArrowRight')||this.keys.has('d')||this.keys.has('D'))return{dx:1,dy:0};return null;}
+ tryMove(dx,dy){const px=this.player.gx,py=this.player.gy,nx=px+dx,ny=py+dy;if(!this.inb(nx,ny))return false;const p=this.pushableAt(nx,ny);if(p){const bx=nx+dx,by=ny+dy;if(!this.canPushableMoveTo(p,bx,by))return false;if(p.kind==='mirror'||p.kind==='prism')p.orientation=orientationForPush(dx,dy);this.startMove(p,bx,by);this.startMove(this.player,nx,ny);return true;}if(!this.isPlayerPassable(nx,ny))return false;this.startMove(this.player,nx,ny);return true;}startMove(m,gx,gy){m.fromX=m.x;m.fromY=m.y;m.toX=gx+.5;m.toY=gy+.5;m.moveT=0;m.moving=true;m.gx=gx;m.gy=gy;}inb(x,y){return x>=0&&y>=0&&x<COLS&&y<ROWS;}
+ lineBlocker(x,y){const tile=this.tileAt(x,y);if(tile==='wall'||tile==='occlusion')return true;if(tile==='door'&&!this.doorOpenAt(x,y))return true;const p=this.pushableAt(x,y);return p&&p.kind==='block';}
+ rayReachesPlayer(t,dir){let x=t.x+.5,y=t.y+.5;const mag=Math.hypot(dir.dx,dir.dy),vx=dir.dx/mag,vy=dir.dy/mag;let last='';for(let i=0;i<900;i++){x+=vx*.05;y+=vy*.05;const tx=Math.floor(x),ty=Math.floor(y),k=key(tx,ty);if(k===last)continue;last=k;if(!this.inb(tx,ty)||tx===0||ty===0||tx===COLS-1||ty===ROWS-1)return false;if(tx===this.player.gx&&ty===this.player.gy)return true;if(this.lineBlocker(tx,ty))return false;}return false;}turretCanFireAtPlayer(t){const dir=quantize16(this.player.x-t.xPos,this.player.y-t.yPos);return this.rayReachesPlayer(t,dir);}
+ updateTurrets(dt){for(const t of this.turrets){if(!t.alive)continue;t.recoil=Math.max(0,t.recoil-dt*7);const aim=quantize16(this.player.x-t.xPos,this.player.y-t.yPos);t.aim=aim;if(!this.hasPlayerActed)continue;t.timer-=dt;if(t.timer<=0){if(this.rayReachesPlayer(t,aim)){t.timer+=t.cooldown;this.fireTurret(t,aim);}else t.timer=Math.min(t.timer+dt,.05);}}}
+ fireTurret(t,aim){if(this.projectiles.length>=MAX_PROJECTILES)return;const mag=Math.hypot(aim.dx,aim.dy),vx=aim.dx/mag,vy=aim.dy/mag;this.projectiles.push({id:this.projectileId++,x:t.xPos+vx*.57,y:t.yPos+vy*.57,dx:aim.dx,dy:aim.dy,vx,vy,age:0,owner:t.id,color:t.color||'R',dead:false,lastTile:key(Math.floor(t.xPos),Math.floor(t.yPos)),bounces:0,trail:[]});t.recoil=1;this.shake=Math.max(this.shake,.35);}
+ updateProjectileDir(p){const mag=Math.hypot(p.dx,p.dy);p.vx=p.dx/mag;p.vy=p.dy/mag;}
+ updateProjectiles(dt){const active=this.projectiles;this.projectiles=[];const survivors=[];for(const p of active){if(p.dead)continue;p.age+=dt;const total=LASER_SPEED*dt,steps=Math.max(1,Math.ceil(total/.06));for(let i=0;i<steps&&!p.dead;i++){p.trail.push({x:p.x,y:p.y,life:.13,color:p.color});if(p.trail.length>16)p.trail.shift();p.x+=p.vx*total/steps;p.y+=p.vy*total/steps;this.handleProjectileTile(p);if(!p.dead)this.handleProjectileHits(p);}p.trail=p.trail.map(q=>({...q,life:q.life-dt})).filter(q=>q.life>0);if(!p.dead)survivors.push(p);}this.projectiles=survivors.concat(this.projectiles);if(this.projectiles.length>MAX_PROJECTILES)this.projectiles=this.projectiles.slice(this.projectiles.length-MAX_PROJECTILES);this.handleProjectileIntersections();}
+ killProjectile(p){p.dead=true;this.spawnSparks(p.x,p.y,6,colorHex(p.color));}reflectProjectile(p,o,prism=false){[p.dx,p.dy]=refl(p.dx,p.dy,o);if(prism)p.color=colorNext(p.color);this.updateProjectileDir(p);p.bounces++;const tx=Math.floor(p.x),ty=Math.floor(p.y);p.x=tx+.5+p.vx*.62;p.y=ty+.5+p.vy*.62;p.lastTile=key(tx,ty);this.spawnSparks(tx+.5,ty+.5,prism?15:9,prism?C.prism:C.mirror2);if(p.bounces>24)p.dead=true;}splitProjectile(p){const tx=Math.floor(p.x),ty=Math.floor(p.y);p.dead=true;if(p.bounces>=12)return;const dirs=[rot90(p.dx,p.dy,1),rot90(p.dx,p.dy,-1)];for(const d0 of dirs){if(this.projectiles.length>=MAX_PROJECTILES)break;const d=normDir(d0[0],d0[1]),mag=Math.hypot(d[0],d[1]);this.projectiles.push({id:this.projectileId++,x:tx+.5+d[0]/mag*.62,y:ty+.5+d[1]/mag*.62,dx:d[0],dy:d[1],vx:d[0]/mag,vy:d[1]/mag,age:.16,owner:p.owner,color:p.color,dead:false,lastTile:key(tx,ty),bounces:p.bounces+1,trail:[]});}this.spawnSparks(tx+.5,ty+.5,20,C.gold);}
+ handleProjectileTile(p){const x=Math.floor(p.x),y=Math.floor(p.y),k=key(x,y);if(k===p.lastTile)return;if(!this.inb(x,y)){p.dead=true;return;}const tile=this.tileAt(x,y);if(tile==='wall'||tile==='occlusion')return this.killProjectile(p);if(tile==='exit'&&!this.doorOpen)return this.killProjectile(p);if(tile==='door'&&!this.doorOpenAt(x,y))return this.killProjectile(p);const push=this.pushableAt(x,y);if(push){if(push.kind==='block')return this.killProjectile(p);if(push.kind==='mirror')return this.reflectProjectile(p,push.orientation,false);if(push.kind==='prism')return this.reflectProjectile(p,push.orientation,true);if(push.kind==='splitter')return this.splitProjectile(p);}if(tile==='glass'||tile==='rail'||tile==='track'||tile==='button'){p.lastTile=k;return;}if(tile==='slitV'&&Math.abs(p.dx)>Math.abs(p.dy))return this.killProjectile(p);if(tile==='slitH'&&Math.abs(p.dy)>Math.abs(p.dx))return this.killProjectile(p);if(tile==='mirror')return this.reflectProjectile(p,this.staticMirrors.get(k),false);if(tile==='prism')return this.reflectProjectile(p,this.staticPrisms.get(k),true);if(tile==='splitter')return this.splitProjectile(p);p.lastTile=k;}
+ handleProjectileHits(p){const tx=Math.floor(p.x),ty=Math.floor(p.y);if(tx===this.player.gx&&ty===this.player.gy&&p.age>.12){this.killPlayer();p.dead=true;return;}for(const g of this.generators){if(!g.alive)continue;if(g.x===tx&&g.y===ty){p.dead=true;if(g.req&&g.req!==p.color){this.spawnSparks(g.x+.5,g.y+.5,14,C.violet);return;}g.alive=false;this.flash=.55;this.shake=1;this.spawnSparks(g.x+.5,g.y+.5,30,C.violet);return;}}for(const t of this.turrets){if(!t.alive)continue;const gx=Math.floor(t.xPos),gy=Math.floor(t.yPos);if(gx===tx&&gy===ty){if(t.id===p.owner&&p.bounces===0)continue;p.dead=true;if(t.shielded&&this.anyGeneratorsAlive()){this.spawnSparks(t.xPos,t.yPos,16,C.violet);return;}if(t.req&&t.req!==p.color){this.spawnSparks(t.xPos,t.yPos,16,colorHex(t.req));return;}this.killTurret(t);return;}}}
+ handleProjectileIntersections(){for(let i=0;i<this.projectiles.length;i++){const a=this.projectiles[i];if(a.dead)continue;for(let j=i+1;j<this.projectiles.length;j++){const b=this.projectiles[j];if(b.dead||a.age<.08||b.age<.08)continue;if(dist2(a.x,a.y,b.x,b.y)<.035){a.dead=true;b.dead=true;this.spawnSparks((a.x+b.x)/2,(a.y+b.y)/2,12,C.gold);}}}this.projectiles=this.projectiles.filter(p=>!p.dead);}
+ killTurret(t){t.alive=false;this.shake=1;this.flash=Math.max(this.flash,.25);this.spawnSparks(t.xPos,t.yPos,34,C.turret);if(this.turrets.every(q=>!q.alive)){this.doorOpen=true;this.flash=.7;this.spawnSparks(this.door.x+.5,this.door.y+.25,36,C.green);}}
+ killPlayer(){if(this.dead)return;this.dead=true;this.restartTimer=.95;this.shake=1.4;this.flash=.75;this.spawnSparks(this.player.x,this.player.y,42,C.player);}spawnSparks(x,y,c,color){for(let i=0;i<c;i++){const a=Math.random()*TAU,sp=1.2+Math.random()*4;this.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.22+Math.random()*.42,maxLife:.5,color,size:2+Math.random()*4});}}updateParticles(dt){for(const p of this.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.12,dt);p.vy*=Math.pow(.12,dt);p.life-=dt;}this.particles=this.particles.filter(p=>p.life>0);}
+ render(){const ox=(Math.random()-.5)*this.shake*8,oy=(Math.random()-.5)*this.shake*8;ctx.save();ctx.clearRect(0,0,W,H);ctx.translate(ox,oy);this.drawRoom();this.drawMarkers();this.drawSpecial();this.drawDoors();this.drawExit();this.drawGenerators();this.drawPushables();this.drawTurrets();this.drawProjectiles();this.drawPlayer();this.drawParticles();this.drawHud();ctx.restore();if(this.flash>0){ctx.save();ctx.globalAlpha=this.flash*.18;ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.restore();}if(this.transition>0){ctx.save();ctx.globalAlpha=clamp(this.transition,0,1);ctx.fillStyle='#050712';ctx.fillRect(0,0,W,H);drawText(this.fadeText,W/2,H/2-28,C.gold,24,'center');drawText('ROOM '+(this.levelIndex+1),W/2,H/2+8,C.muted,13,'center');ctx.restore();}}
+ drawRoom(){ctx.fillStyle=C.floorA;ctx.fillRect(0,0,W,H);for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){const px=x*TILE,py=y*TILE,t=this.tileAt(x,y);ctx.fillStyle=(x+y)%2?C.floorA:C.floorB;ctx.fillRect(px,py,TILE,TILE);ctx.fillStyle=C.grid;ctx.fillRect(px,py,TILE,1);ctx.fillRect(px,py,1,TILE);if(t==='wall')this.drawWall(x,y);if(t==='occlusion')this.drawOcc(x,y);}}
+ drawWall(x,y){const px=x*TILE,py=y*TILE;ctx.fillStyle=C.wall1;ctx.fillRect(px,py,TILE,TILE);ctx.fillStyle=C.wall0;ctx.fillRect(px+3,py+3,TILE-6,TILE-6);ctx.fillStyle=C.wall2;ctx.fillRect(px+6,py+6,TILE-12,5);ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(px+6,py+TILE-11,TILE-12,5);}drawOcc(x,y){const px=x*TILE,py=y*TILE;ctx.fillStyle=C.occ0;ctx.fillRect(px,py,TILE,TILE);ctx.fillStyle=C.occ1;ctx.fillRect(px+5,py+5,TILE-10,TILE-10);ctx.fillStyle='rgba(192,132,252,.18)';ctx.fillRect(px+9,py+9,TILE-18,4);ctx.fillRect(px+9,py+TILE-13,TILE-18,4);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(px+14,py+14,TILE-28,TILE-28);}drawMarkers(){if(this.levelIndex>=3||this.levelTime<HINT_DELAY)return;const pulse=.5+Math.sin(performance.now()/180)*.5;for(const m of this.markers){const cx=(m.x+.5)*TILE,cy=(m.y+.5)*TILE;ctx.save();ctx.globalAlpha=.25+pulse*.25;ctx.fillStyle=C.gold;ctx.beginPath();ctx.moveTo(cx,cy-13);ctx.lineTo(cx+13,cy);ctx.lineTo(cx,cy+13);ctx.lineTo(cx-13,cy);ctx.closePath();ctx.fill();ctx.restore();}}
+ drawSpecial(){for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){const t=this.tileAt(x,y),k=key(x,y);if(t==='mirror')this.drawMirrorLine(x,y,this.staticMirrors.get(k),false,true);if(t==='prism')this.drawMirrorLine(x,y,this.staticPrisms.get(k),true,true);if(t==='glass')this.drawGlass(x,y);if(t==='splitter')this.drawSplitter(x,y);if(t==='slitV'||t==='slitH')this.drawSlit(x,y,t);if(t==='rail')this.drawRail(x,y);if(t==='button')this.drawButton(x,y);if(t==='track')this.drawTrack(x,y);}}
+ drawMirrorLine(x,y,o,prism=false,fixed=false){const px=x*TILE,py=y*TILE;ctx.save();if(prism){const bg=ctx.createLinearGradient(px+5,py+5,px+TILE-5,py+TILE-5);bg.addColorStop(0,'rgba(255,77,109,.82)');bg.addColorStop(.5,'rgba(125,255,140,.78)');bg.addColorStop(1,'rgba(86,230,255,.82)');ctx.fillStyle=bg;ctx.fillRect(px+5,py+5,TILE-10,TILE-10);ctx.fillStyle='rgba(10,8,28,.45)';ctx.fillRect(px+9,py+9,TILE-18,TILE-18);for(let i=0;i<5;i++){ctx.fillStyle=['#ff4d6d','#ffd166','#7dff8c','#56e6ff','#c084fc'][i];ctx.fillRect(px+8+i*7,py+8,5,TILE-16);}ctx.strokeStyle='#fff7ad';}else{ctx.fillStyle=fixed?'rgba(214,226,255,.12)':'rgba(12,25,40,.94)';ctx.fillRect(px+5,py+5,TILE-10,TILE-10);ctx.strokeStyle=C.mirror2;}ctx.lineWidth=3;ctx.strokeRect(px+7,py+7,TILE-14,TILE-14);this.strokeLine(px,py,o,prism?'#fff7ad':C.mirror,prism?'#56e6ff':C.mirror2);if(prism)drawText('RGB',px+TILE/2,py+TILE-17,'#fff7ad',8,'center');ctx.restore();}strokeLine(px,py,o,c1,c2){ctx.lineWidth=7;ctx.lineCap='square';ctx.strokeStyle=c1;ctx.beginPath();if(o==='slash'){ctx.moveTo(px+TILE-11,py+11);ctx.lineTo(px+11,py+TILE-11);}else if(o==='back'){ctx.moveTo(px+11,py+11);ctx.lineTo(px+TILE-11,py+TILE-11);}else if(o==='vertical'){ctx.moveTo(px+TILE/2,py+9);ctx.lineTo(px+TILE/2,py+TILE-9);}else{ctx.moveTo(px+9,py+TILE/2);ctx.lineTo(px+TILE-9,py+TILE/2);}ctx.stroke();ctx.lineWidth=2;ctx.strokeStyle=c2;ctx.stroke();}
+ drawGlass(x,y){const px=x*TILE,py=y*TILE;ctx.fillStyle='rgba(86,230,255,.13)';ctx.fillRect(px+5,py+5,TILE-10,TILE-10);ctx.strokeStyle='rgba(86,230,255,.72)';ctx.lineWidth=3;ctx.strokeRect(px+8,py+8,TILE-16,TILE-16);}drawSplitter(x,y){const px=x*TILE,py=y*TILE,p=.55+Math.sin(performance.now()/150)*.45;ctx.fillStyle='rgba(255,209,102,.12)';ctx.fillRect(px+4,py+4,TILE-8,TILE-8);ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=3;ctx.strokeRect(px+7,py+7,TILE-14,TILE-14);ctx.fillStyle=`rgba(255,209,102,${.65+p*.25})`;ctx.beginPath();ctx.moveTo(px+24,py+8);ctx.lineTo(px+40,py+24);ctx.lineTo(px+24,py+40);ctx.lineTo(px+8,py+24);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillRect(px+21,py+14,6,20);ctx.fillRect(px+14,py+21,20,6);}drawSlit(x,y,t){const px=x*TILE,py=y*TILE;ctx.fillStyle='rgba(7,9,20,.92)';ctx.fillRect(px+5,py+5,TILE-10,TILE-10);ctx.fillStyle=C.gold;if(t==='slitV')ctx.fillRect(px+21,py+7,6,TILE-14);else ctx.fillRect(px+7,py+21,TILE-14,6);}drawRail(x,y){const px=x*TILE,py=y*TILE;ctx.fillStyle='rgba(100,116,139,.13)';ctx.fillRect(px+5,py+5,TILE-10,TILE-10);ctx.fillStyle=C.rail;for(let i=0;i<4;i++){const x0=px+9+i*8,y0=py+30-(i%2)*12;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0+7,y0-11);ctx.lineTo(x0+14,y0);ctx.closePath();ctx.fill();}ctx.fillStyle='rgba(255,255,255,.28)';for(let i=0;i<3;i++){const x0=px+13+i*9,y0=py+17+(i%2)*12;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0+5,y0+8);ctx.lineTo(x0-5,y0+8);ctx.closePath();ctx.fill();}}drawButton(x,y){const b=this.buttons.find(q=>q.x===x&&q.y===y),px=x*TILE,py=y*TILE,act=b&&b.active;ctx.fillStyle=act?'rgba(125,255,140,.24)':'rgba(255,209,102,.1)';ctx.fillRect(px+7,py+7,TILE-14,TILE-14);ctx.fillStyle=act?C.green:C.gold;ctx.beginPath();ctx.arc(px+24,py+24,12,0,TAU);ctx.fill();ctx.fillStyle='#07140f';ctx.fillRect(px+19,py+21,10,6);}drawTrack(x,y){const px=x*TILE,py=y*TILE;ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(px+6,py+21,TILE-12,6);ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(px+10,py+18,4,12);ctx.fillRect(px+TILE-14,py+18,4,12);}
+ drawDoors(){for(const d of this.doors){const px=d.x*TILE,py=d.y*TILE,open=this.doorOpenAt(d.x,d.y);ctx.save();ctx.globalAlpha=open?.24:1;ctx.fillStyle=open?'rgba(125,255,140,.22)':'#201421';ctx.fillRect(px+3,py+3,TILE-6,TILE-6);ctx.strokeStyle=open?C.green:C.door;ctx.lineWidth=3;ctx.strokeRect(px+8,py+8,TILE-16,TILE-16);if(!open){ctx.fillStyle=C.door;ctx.fillRect(px+12,py+19,TILE-24,5);ctx.fillRect(px+12,py+28,TILE-24,5);}ctx.restore();}}drawExit(){const px=this.door.x*TILE,py=this.door.y*TILE;if(this.doorOpen){ctx.fillStyle='#07140f';ctx.fillRect(px+4,py,TILE-8,TILE);ctx.fillStyle='rgba(125,255,140,.8)';ctx.fillRect(px+8,py+2,TILE-16,4);drawText('EXIT',px+TILE/2,py+8,C.green,10,'center');}else{ctx.fillStyle='#201421';ctx.fillRect(px+3,py,TILE-6,TILE);ctx.fillStyle=C.turretDark;ctx.fillRect(px+8,py+8,TILE-16,TILE-12);ctx.fillStyle=C.hot;ctx.fillRect(px+15,py+16,TILE-30,6);ctx.fillRect(px+15,py+28,TILE-30,6);}}
+ drawGenerators(){for(const g of this.generators){if(!g.alive)continue;g.pulse+=.05;const cx=(g.x+.5)*TILE,cy=(g.y+.5)*TILE,p=.5+Math.sin(g.pulse)*.5;ctx.save();ctx.shadowBlur=18;ctx.shadowColor=g.req?colorHex(g.req):C.violet;ctx.fillStyle='#3b176b';ctx.fillRect(cx-15,cy-15,30,30);ctx.fillStyle=g.req?colorHex(g.req):C.violet;ctx.fillRect(cx-9,cy-9,18,18);ctx.fillStyle=`rgba(255,255,255,${.35+p*.45})`;ctx.fillRect(cx-4,cy-4,8,8);ctx.restore();if(g.req)drawText(g.req,cx,cy-7,'#070914',14,'center');}}drawPushables(){for(const p of this.pushables){if(p.kind==='block')this.drawBlock(p);else if(p.kind==='mirror'||p.kind==='prism')this.drawPushMirror(p,p.kind==='prism');else this.drawPushSplitter(p);}}drawBlock(b){const px=(b.x-.5)*TILE,py=(b.y-.5)*TILE;ctx.fillStyle='#5a4633';ctx.fillRect(px+6,py+6,TILE-12,TILE-12);ctx.fillStyle='#8d6b45';ctx.fillRect(px+9,py+9,TILE-18,TILE-18);ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(px+12,py+12,TILE-24,5);}drawPushMirror(m,prism){this.drawMirrorLine(Math.floor(m.x-.5),Math.floor(m.y-.5),m.orientation,prism,false);}drawPushSplitter(p){this.drawSplitter(Math.floor(p.x-.5),Math.floor(p.y-.5));}
+ drawTurrets(){for(const t of this.turrets){const cx=t.xPos*TILE,cy=t.yPos*TILE;if(!t.alive){ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(cx-16,cy-9,32,18);ctx.fillStyle='#391d29';ctx.fillRect(cx-10,cy-5,20,10);continue;}const base=t.req?colorHex(t.req):C.turret;ctx.save();ctx.translate(cx-t.aim.dx/(Math.hypot(t.aim.dx,t.aim.dy)||1)*t.recoil*5,cy-t.aim.dy/(Math.hypot(t.aim.dx,t.aim.dy)||1)*t.recoil*5);ctx.shadowBlur=14;ctx.shadowColor=base;ctx.fillStyle=C.turretDark;ctx.fillRect(-18,-18,36,36);ctx.fillStyle=base;ctx.fillRect(-13,-13,26,26);ctx.fillStyle='#ffd1da';ctx.fillRect(-5,-5,10,10);ctx.rotate(t.aim.angle);ctx.fillStyle='#2b1020';ctx.fillRect(5,-6,22,12);ctx.fillStyle=base;ctx.fillRect(19,-4,8,8);ctx.restore();const f=clamp(t.timer/t.cooldown,0,1);ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.beginPath();ctx.arc(cx,cy,25,0,TAU);ctx.stroke();ctx.strokeStyle=f<.22?C.hot:C.gold;ctx.beginPath();ctx.arc(cx,cy,25,-Math.PI/2,-Math.PI/2+TAU*f);ctx.stroke();if(t.shielded&&this.anyGeneratorsAlive()){ctx.save();ctx.globalAlpha=.74;ctx.strokeStyle=C.violet;ctx.lineWidth=3;ctx.setLineDash([6,5]);ctx.beginPath();ctx.arc(cx,cy,30+Math.sin(performance.now()/120)*2,0,TAU);ctx.stroke();ctx.restore();}if(t.req)drawText(t.req,cx,cy-7,'#070914',14,'center');}}
+ drawProjectiles(){ctx.save();ctx.lineCap='square';for(const p of this.projectiles){const col=colorHex(p.color);for(const q of p.trail){ctx.globalAlpha=clamp(q.life/.13,0,1)*.36;ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(q.x*TILE,q.y*TILE);ctx.lineTo((q.x-p.vx*.28)*TILE,(q.y-p.vy*.28)*TILE);ctx.stroke();ctx.globalAlpha=1;}const x=p.x*TILE,y=p.y*TILE;ctx.shadowBlur=18;ctx.shadowColor=col;ctx.strokeStyle=col;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x-p.vx*18,y-p.vy*18);ctx.lineTo(x+p.vx*9,y+p.vy*9);ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle=C.laserCore;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-p.vx*15,y-p.vy*15);ctx.lineTo(x+p.vx*8,y+p.vy*8);ctx.stroke();}ctx.restore();}
+ drawPlayer(){if(this.dead&&Math.floor(performance.now()/75)%2===0)return;const cx=this.player.x*TILE,cy=this.player.y*TILE;ctx.save();ctx.shadowBlur=18;ctx.shadowColor=C.player;ctx.fillStyle=C.playerDark;ctx.fillRect(cx-13,cy-12,26,28);ctx.fillStyle=C.player;ctx.fillRect(cx-10,cy-15,20,14);ctx.fillRect(cx-8,cy,16,16);ctx.fillStyle='#06170f';ctx.fillRect(cx-6,cy-10,4,4);ctx.fillRect(cx+2,cy-10,4,4);ctx.restore();}drawParticles(){ctx.save();for(const p of this.particles){ctx.globalAlpha=clamp(p.life/p.maxLife,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x*TILE-p.size/2,p.y*TILE-p.size/2,p.size,p.size);}ctx.restore();}drawHud(){const alive=this.turrets.filter(t=>t.alive).length,total=this.turrets.length;drawText(`TURRETS ${total-alive}/${total}`,14,12,C.gold,13);const gens=this.generators.filter(g=>g.alive).length;if(this.generators.length)drawText(`GENERATORS ${this.generators.length-gens}/${this.generators.length}`,14,30,C.violet,13);if(this.raw.banner){ctx.save();ctx.globalAlpha=.94;drawText(this.raw.banner,W/2,74,C.gold,34,'center');drawText('YOU CLEARED FRIENDLY FIRE',W/2,116,C.laserB,13,'center');ctx.restore();}if(this.secretWin){ctx.save();ctx.fillStyle='rgba(5,7,18,.72)';ctx.fillRect(0,0,W,H);ctx.globalAlpha=.98;drawText('SECRET WIN',W/2,H/2-52,C.gold,38,'center');drawText('THE LAST DOOR OPENS FOR THE STUBBORN',W/2,H/2,C.laserB,13,'center');drawText('CONGRATS',W/2,H/2+28,C.green,18,'center');ctx.restore();}if(levelJumpBuffer)drawText(`JUMP ${levelJumpBuffer}`,W/2,12,C.gold,13,'center');drawText(this.doorOpen?'DOOR OPEN ↓':'DOOR LOCKED',W-14,12,this.doorOpen?C.green:C.hot,13,'right');if(this.levelIndex<3&&this.levelTime<HINT_DELAY)drawText(`HINT IN ${Math.ceil(HINT_DELAY-this.levelTime)}`,W-14,30,C.muted,11,'right');if(this.dead)drawText('SIGNAL LOST',W/2,H/2-10,C.hot,28,'center');}
+}
+const game=new Game();window.__friendlyFire=game;window.exportFriendlyFireCards=()=>document.getElementById('level-cards').textContent;window.loadFriendlyFireCards=raw=>{LEVELS=parseLevelCards(raw);levelJumpBuffer='';game.loadLevel(0);return LEVELS.length;};window.addEventListener('keydown',e=>{if(/^\d$/.test(e.key)){e.preventDefault();levelJumpBuffer=(levelJumpBuffer+e.key).slice(0,3);return;}if(e.key==='Backspace'&&levelJumpBuffer){e.preventDefault();levelJumpBuffer=levelJumpBuffer.slice(0,-1);return;}if(e.key==='Escape'&&levelJumpBuffer){e.preventDefault();levelJumpBuffer='';return;}if(e.key==='Enter'&&levelJumpBuffer){e.preventDefault();const levelNumber=Number(levelJumpBuffer);levelJumpBuffer='';if(Number.isInteger(levelNumber)&&levelNumber>=1&&levelNumber<=LEVELS.length)game.loadLevel(levelNumber-1);return;}const m=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'];if(m.includes(e.key))e.preventDefault();game.keys.add(e.key);if(e.key==='ArrowUp'||e.key==='w'||e.key==='W')game.pendingDir={dx:0,dy:-1};if(e.key==='ArrowDown'||e.key==='s'||e.key==='S')game.pendingDir={dx:0,dy:1};if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')game.pendingDir={dx:-1,dy:0};if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')game.pendingDir={dx:1,dy:0};if(e.key==='r'||e.key==='R'){levelJumpBuffer='';game.loadLevel(game.levelIndex);}if(e.key==='n'||e.key==='N'){levelJumpBuffer='';game.loadLevel(game.levelIndex+1);}});window.addEventListener('keyup',e=>game.keys.delete(e.key));document.getElementById('resetBtn').addEventListener('click',()=>{levelJumpBuffer='';game.loadLevel(game.levelIndex);});document.getElementById('nextBtn').addEventListener('click',()=>{levelJumpBuffer='';game.loadLevel(game.levelIndex+1);});document.querySelectorAll('[data-dir]').forEach(btn=>btn.addEventListener('pointerdown',e=>{e.preventDefault();levelJumpBuffer='';const d=btn.dataset.dir;const map={up:{dx:0,dy:-1},down:{dx:0,dy:1},left:{dx:-1,dy:0},right:{dx:1,dy:0},wait:{dx:0,dy:0}};game.pendingDir=map[d];}));
+})();
+</script></body></html>
